@@ -1,4 +1,4 @@
-# sync.Pool Implementation
+# `sync.Pool` Implementation
 
 A highly optimized, thread-safe object pool implementation tailored specifically for asymmetric concurrency patterns. This project serves as a high-performance alternative to `sync.Pool` under specific thread-allocation constraints.
 
