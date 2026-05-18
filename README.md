@@ -1,30 +1,87 @@
-## Our Implementation of Go/Concurrency Task by 7G
+# Custom `sync.Pool` Implementation
 
-The main idea of `sync.Pool` is to solve the Heap Reallocation problem: too many short-lived
-allocations create garbage collector (GC) pressure in high‑throughput Go programs.
-Instead of allocating a new object every time and letting the GC clean it up,
-you can reuse objects from a pool of temporaries.
+A highly optimized, thread-safe object pool implementation tailored specifically for asymmetric concurrency patterns.
+This project presents two implementation alternatives to `sync.Pool` under specific thread-allocation constraints.
 
-For this Task:
-- `Get()` is called from one goroutine: no need for sync or atomic operations here
-- `Put()` is called from several goroutines: need write sync by mutex
+## Overview
 
-Standard `sync.Pool` might not be ideal since it assumes `Get()` is called concurrently across multiple threads.
-To achieve this, `sync.Pool` creates a local lock-free ring buffer for each Processor (P).
-If a goroutine on one P tries to `Get()` an item but its local buffer is empty,
-it uses a complex "work-stealing" algorithm to lock and steal objects from the buffers of other Ps.
+In the Go standard library, `sync.Pool` is the go-to utility for reusing allocated memory and reducing Garbage
+Collection (GC) pressure.
+However, because `sync.Pool` is built to be a one-size-fits-all generic solution, it introduces synchronization
+compromises to accommodate arbitrary multithreaded usage.
 
-In our Multi-Producer, Single-Consumer (MPSC) scenario, this built-in per-P architecture and work-stealing overhead
-is entirely unnecessary and suboptimal. Because `Get()` is strictly called by a single goroutine, we can completely
-bypass atomic operations and work-stealing during retrieval.
+This repository provides `Pool` - a specialized object pool optimized explicitly for scenarios where resource
+retrieval (`Get`) and resource recycling (`Put`) are entirely asymmetric.
 
-We can maintain nonsync local slice for the consumer, and a mutex-protected shared slice for the producers.
-When the local slice is empty, the single consumer simply acquires the mutex and performs an $O(1)$ swap of the local
-and shared slices, instantly refilling its supply with near-zero overhead.
+---
 
-### Project Structure and Execution
+## The Asymmetric Scenario
 
+This library is designed for architectures that match the following execution flow:
+* **Single-Consumer (`Get`):** All calls to `.Get()` happen sequentially within **one unique goroutine**
+(e.g., a central event loop, a single network reader, or a main worker router).
+* **Multi-Producer (`Put`):** Calls to `.Put()` are executed concurrently from **multiple independent background
+goroutines** (e.g., worker threads returning processed buffers or network packets back to the pool).
 
-`go test -v`: Test inside the mutexpool directory
+---
 
-`go test -bench=. -benchmem`: Do benchmarking in the root directory
+## Why `sync.Pool` is Suboptimal Here
+
+The standard `sync.Pool` maintains a two-tiered caching layer for every CPU core (`P`): a `private` slot and a `shared` lockless deque.
+
+When your architecture forces a single goroutine to do all the `Get` requests:
+1. The consumer goroutine quickly exhausts its own thread-local `private` cache.
+2. It is then forced into a "work-stealing" routine—performing expensive atomic Compare-And-Swap (CAS) operations to
+steal objects recycled by other goroutines on different CPU cores.
+3. If stealing fails, it drops into a slow-path mutex lock or allocates entirely new objects, which triggers runtime
+GC overhead.
+
+---
+
+## Architecture & Optimization Strategy
+
+`Pool` drops the overhead of work-stealing, cross-thread cache thrashing, and runtime-hook cleanups by utilizing a highly tuned ring-buffer channel.
+
+* **$O(1)$ Lockless Get:** Because a single goroutine is pulling items sequentially, reading from the buffered channel takes a direct, lock-free execution path.
+* **Non-blocking Puts:** Multiple background goroutines can rapidly push items back into the queue concurrently.
+If the pool capacity is saturated, extra items are safely discarded to avoid blocking performance-critical worker
+threads, leaving them to be cleaned up naturally by the GC.
+* **Zero-Allocation Lifecycles:** Unlike `sync.Pool`, which automatically drops all cached items during every global
+Garbage Collection cycle, `Pool` retains its underlying hot-cache elements across GC intervals, drastically cutting allocation spikes.
+
+---
+
+## Getting Started
+
+### Installation
+
+Clone this repository directly into your project structure:
+
+```bash
+git clone https://github.com/itelman/go-concurrency.git
+```
+
+## Running Benchmarks & Tests
+
+This repository enforces strict thread-safety validation and comprehensive performance tracking.
+
+### Run Unit & Stress Tests
+
+To confirm correct pool behavior and guarantee no race conditions under high concurrent stress,
+run the tests in each implementation directory with:
+
+```bash
+go test -v -race ./mutexpool/
+go test -v -race ./chanpool/
+```
+
+### Run Performance Benchmarks
+
+To compare the throughput, execution speed, and allocation metrics of our implementations against `sync.Pool`,
+run the common benchmark file from the project root directory:
+
+```bash
+go test -bench=. -benchmem
+```
+
+---

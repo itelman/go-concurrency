@@ -1,4 +1,4 @@
-package mutexpool
+package chanpool
 
 import (
 	"sync"
@@ -10,11 +10,9 @@ type TestObject struct {
 }
 
 func TestPool_Basic(t *testing.T) {
-	p := &Pool{
-		New: func() any {
-			return &TestObject{ID: -1}
-		},
-	}
+	p := NewPool(10, func() any {
+		return &TestObject{ID: -1}
+	})
 
 	// 1. Initial Get should trigger allocation via New()
 	obj1 := p.Get().(*TestObject)
@@ -40,9 +38,7 @@ func TestPool_Concurrency(t *testing.T) {
 
 	// We return nil for New() so the consumer knows when the pool is empty
 	// without artificially generating new items during the drain phase.
-	p := &Pool{
-		New: func() any { return nil },
-	}
+	p := NewPool(totalExpected, func() any { return nil })
 
 	var wg sync.WaitGroup
 
