@@ -184,7 +184,7 @@ func TestConcurrent_ExactCount(t *testing.T) {
 }
 
 // TestConcurrent_NoItemDuplication checks that no object is returned twice
-// by Get(). Each Put'd object is unique; we track by pointer.
+// by Get(). Each Put object is unique; we track by pointer.
 func TestConcurrent_NoItemDuplication(t *testing.T) {
 	const (
 		producers    = 8
