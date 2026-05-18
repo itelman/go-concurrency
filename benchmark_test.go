@@ -19,13 +19,18 @@ type poolInterface interface {
 }
 
 // runMPSC is the shared benchmark logic for Multi-Producer, Single-Consumer workloads.
+// totalItems is fixed at 120 across all sub-benchmarks; only producer count varies.
+// This keeps total work constant while sweeping from low-contention (2 producers)
+// to high-contention (120 producers, each putting exactly 1 item).
 func runMPSC(b *testing.B, p poolInterface, producers, itemsPerProducer int) {
+	b.Helper()
 	totalItems := producers * itemsPerProducer
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		var wg sync.WaitGroup
 
-		// Producers (Multiple goroutines pushing concurrently)
+		// Multiple producers — each pushes itemsPerProducer items concurrently.
 		for w := 0; w < producers; w++ {
 			wg.Add(1)
 			go func() {
@@ -36,21 +41,23 @@ func runMPSC(b *testing.B, p poolInterface, producers, itemsPerProducer int) {
 			}()
 		}
 
-		// Single Consumer (One goroutine draining the pool)
+		// Single consumer — one goroutine drains the pool.
+		// Contract: only this goroutine calls Get() at any point in time.
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for j := 0; j < totalItems; j++ {
-				_ = p.Get() // Drain the pool
+				_ = p.Get()
 			}
 		}()
 
-		wg.Wait() // Wait for this iteration to finish
+		wg.Wait()
 	}
 }
 
 func runBenchmarks(b *testing.B, p poolInterface) {
-	b.Run("VLight_2_Producer", func(b *testing.B) { runMPSC(b, p, 2, 60) })
+	b.Helper()
+	b.Run("VLight_2_Producers", func(b *testing.B) { runMPSC(b, p, 2, 60) })
 	b.Run("Light_4_Producers", func(b *testing.B) { runMPSC(b, p, 4, 30) })
 	b.Run("Medium_12_Producers", func(b *testing.B) { runMPSC(b, p, 12, 10) })
 	b.Run("Heavy_30_Producers", func(b *testing.B) { runMPSC(b, p, 30, 4) })
@@ -66,7 +73,6 @@ func BenchmarkSyncPool(b *testing.B) {
 	p := &sync.Pool{
 		New: func() any { return new(BenchObj) },
 	}
-
 	runBenchmarks(b, p)
 }
 
@@ -78,7 +84,6 @@ func BenchmarkMutexPool(b *testing.B) {
 	p := &mutexpool.Pool{
 		New: func() any { return new(BenchObj) },
 	}
-
 	runBenchmarks(b, p)
 }
 
@@ -87,8 +92,8 @@ func BenchmarkMutexPool(b *testing.B) {
 // =============================================================================
 
 func BenchmarkChannelPool(b *testing.B) {
-	// Size is set to 100 to comfortably accommodate the maximum totalItems (10x10)
+	// Capacity 120 = max total items (SHeavy: 120 producers × 1 item each).
+	// Prevents channel-block stalls on the heaviest sub-benchmark.
 	p := chanpool.NewPool(120, func() any { return new(BenchObj) })
-
 	runBenchmarks(b, p)
 }

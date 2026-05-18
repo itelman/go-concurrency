@@ -2,12 +2,10 @@ package mutexpool
 
 import (
 	"sync"
+	"sync/atomic"
 	_ "unsafe" // Required for go:linkname
 )
 
-// Hook into the Go runtime's internal pool cleanup.
-// Invoked automatically during the GC Stop-The-World (STW) phase.
-//
 //go:linkname registerPoolCleanup sync.runtime_registerPoolCleanup
 func registerPoolCleanup(cleanup func())
 
@@ -20,24 +18,17 @@ func init() {
 	registerPoolCleanup(cleanupPools)
 }
 
-// cleanupPools implements the two-cycle GC eviction (Victim Cache).
 func cleanupPools() {
-	// Runs during GC STW (all goroutines are physically paused).
 	allPoolsMu.Lock()
 	defer allPoolsMu.Unlock()
 	for _, p := range allPools {
-		// 1. Demote current primaries to victims (overwriting/deleting old victims).
-		// Single-word pointer assignments are naturally atomic and prevent torn headers.
-		p.victimLocal = p.local
-		p.victimShared = p.shared
-
-		// 2. Clear primary caches
-		p.local = nil
-		p.shared = nil
+		// Atomically move primary → victim, clear primary.
+		// No mutex — only pointer-width atomic ops, safe during GC cleanup.
+		p.victimLocal.Store(p.local.Swap(nil))
+		p.victimShared.Store(p.shared.Swap(nil))
 	}
 }
 
-// sliceWrapper protects slice headers from tearing during GC STW overwrites.
 type sliceWrapper struct {
 	items []any
 }
@@ -46,17 +37,14 @@ type sliceWrapper struct {
 type Pool struct {
 	New func() any
 
-	initOnce sync.Once // Ensures the pool registers for GC cleanup exactly once
+	initOnce sync.Once
+	mu       sync.Mutex
 
-	// Primary caches (Cleared/Demoted on every GC cycle)
-	local  *sliceWrapper // Fast-path: Accessed exclusively by the single consumer
-	mu     sync.Mutex    // Protects the shared wrapper
-	shared *sliceWrapper // Slow-path: Appended to by multiple producers
+	local  atomic.Pointer[sliceWrapper] // was *sliceWrapper
+	shared atomic.Pointer[sliceWrapper] // was *sliceWrapper
 
-	// Victim caches (Demoted from primaries by the GC)
-	// Read-only for the consumer. Producers never write here.
-	victimLocal  *sliceWrapper
-	victimShared *sliceWrapper
+	victimLocal  atomic.Pointer[sliceWrapper]
+	victimShared atomic.Pointer[sliceWrapper]
 }
 
 func (p *Pool) register() {
@@ -67,38 +55,32 @@ func (p *Pool) register() {
 	})
 }
 
-// Get retrieves an item from the pool.
-// Must ONLY be called by a single goroutine.
 func (p *Pool) Get() any {
 	p.register()
 
 	for {
-		// Primary Local Cache
-		l := p.local
-		if l != nil {
+		// 1. Primary local (single consumer — no lock needed)
+		if l := p.local.Load(); l != nil {
 			if n := len(l.items); n > 0 {
 				item := l.items[n-1]
-				l.items[n-1] = nil // Avoid memory leaks
+				l.items[n-1] = nil
 				l.items = l.items[:n-1]
 				if item != nil {
 					return item
 				}
-				continue // Defensive check for STW overlaps
+				continue
 			}
 		}
 
-		// Primary Shared Cache (Requires Lock)
+		// 2. Swap local ↔ shared under lock
 		p.mu.Lock()
-		s := p.shared
-
-		// Optimization: Recycle the empty local wrapper's capacity back to the producers
-		p.shared = l
-		if p.shared != nil {
-			p.shared.items = p.shared.items[:0]
+		l := p.local.Load()
+		s := p.shared.Load()
+		if l != nil {
+			l.items = l.items[:0]
 		}
-
-		// Steal the shared wrapper
-		p.local = s
+		p.shared.Store(l)
+		p.local.Store(s)
 		p.mu.Unlock()
 
 		if s != nil {
@@ -113,18 +95,14 @@ func (p *Pool) Get() any {
 			}
 		}
 
-		// Victim Local Cache (No lock needed)
-		vl := p.victimLocal
-		if vl != nil {
+		// 3. Victim local
+		if vl := p.victimLocal.Load(); vl != nil {
 			if n := len(vl.items); n > 0 {
 				item := vl.items[n-1]
 				vl.items[n-1] = nil
 				vl.items = vl.items[:n-1]
-
-				// Revive the remaining victims BACK to the primary local cache!
-				p.local = vl
-				p.victimLocal = nil
-
+				p.local.Store(vl)
+				p.victimLocal.Store(nil)
 				if item != nil {
 					return item
 				}
@@ -132,26 +110,26 @@ func (p *Pool) Get() any {
 			}
 		}
 
-		// Victim Shared Cache (No lock needed, producers don't write there)
-		vs := p.victimShared
+		// 4. Victim shared (still needs lock — Put() may be appending to it)
+		p.mu.Lock()
+		vs := p.victimShared.Load()
 		if vs != nil {
 			if n := len(vs.items); n > 0 {
 				item := vs.items[n-1]
 				vs.items[n-1] = nil
 				vs.items = vs.items[:n-1]
-
-				// Revive the remaining victims BACK to the primary local cache!
-				p.local = vs
-				p.victimShared = nil
-
+				p.local.Store(vs)
+				p.victimShared.Store(nil)
+				p.mu.Unlock()
 				if item != nil {
 					return item
 				}
 				continue
 			}
 		}
+		p.mu.Unlock()
 
-		// 5. Pool is completely empty
+		// 5. Empty
 		if p.New != nil {
 			return p.New()
 		}
@@ -159,8 +137,6 @@ func (p *Pool) Get() any {
 	}
 }
 
-// Put adds x to the pool.
-// Contract: Can be called concurrently by multiple goroutines.
 func (p *Pool) Put(x any) {
 	if x == nil {
 		return
@@ -168,9 +144,11 @@ func (p *Pool) Put(x any) {
 	p.register()
 
 	p.mu.Lock()
-	if p.shared == nil {
-		p.shared = &sliceWrapper{} // Allocates only once per GC cycle
+	s := p.shared.Load()
+	if s == nil {
+		s = &sliceWrapper{}
+		p.shared.Store(s)
 	}
-	p.shared.items = append(p.shared.items, x)
+	s.items = append(s.items, x)
 	p.mu.Unlock()
 }
