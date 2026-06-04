@@ -1,4 +1,4 @@
-// Package mutexpool provides a MPSC (Multi-Producer, Single-Consumer) object
+// Package mutexpool provides a MPSC (Multi-Producer, Single-Consumer)
 // pool with the same interface as sync.Pool.
 //
 // # Design

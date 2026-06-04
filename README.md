@@ -39,16 +39,24 @@ GC overhead.
 ---
 
 ## Architecture & Optimization Strategy
+`mpscpool` is an ultra-high performance, lock-free, CAS-free object pool for Go. It is optimized specifically for **Multi-Producer, Single-Consumer (MPSC)** workflows.
 
-`Pool` drops the overhead of work-stealing, cross-thread cache thrashing, and runtime-hook cleanups by utilizing a highly tuned ring-buffer channel.
+By leveraging Go runtime processor pinning (`runtime_procPin`) and a sharded architecture, it avoids global locks, central rings, and Compare-And-Swap (CAS) retry loops completely on the producer path. This provides deterministic, wait-free execution even under extreme thread contention.
 
-* **$O(1)$ Lockless Get:** Because a single goroutine is pulling items sequentially, reading from the buffered channel takes a direct, lock-free execution path.
-* **Non-blocking Puts:** Multiple background goroutines can rapidly push items back into the queue concurrently.
-If the pool capacity is saturated, extra items are safely discarded to avoid blocking performance-critical worker
-threads, leaving them to be cleaned up naturally by the GC.
-* **Zero-Allocation Lifecycles:** Unlike `sync.Pool`, which automatically drops all cached items during every global
-Garbage Collection cycle, `Pool` retains its underlying hot-cache elements across GC intervals, drastically cutting allocation spikes.
+## 🚀 Performance Characteristics
+- **Producers (`Put`):** Completely **Wait-Free**. Under high contention, it out-performs standard library `sync.Pool` and atomic-CAS ring buffers because producers never loop, never block, and write exclusively to separate, CPU-sharded memory segments.
+- **Consumer (`Get`):** Highly localized, cache-friendly array scans with no central mutex tracking.
+- **False Sharing Protection:** Struct fields and array segments are protected by strict 64-byte cache-line padding boundaries.
+- **GC Integration:** Integrates directly with Go's internal Garbage Collector hooks (`sync.runtime_registerPoolCleanup`). The pool automatically flushes cached entries during Stop-The-World (STW) GC cycles to prevent memory bloat, matching `sync.Pool` behavior.
 
+## ⚠️ The Architectural Contract (Crucial)
+
+To achieve its lock-free speeds, `mpscpool` enforces a strict architectural invariant:
+
+1. **`Put(any)`:** Can be called concurrently by **unlimited, arbitrary numbers of goroutines/producers**.
+2. **`Get() any`:** Must **ONLY be called by ONE goroutine at a time**.
+
+> **Warning:** Calling `Get()` from multiple concurrent consumer goroutines without outer synchronization will violate memory guarantees, cause data corruption, or result in dropped items.
 ---
 
 ## Getting Started

@@ -4,7 +4,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/itelman/go-concurrency/chanpool"
+	"github.com/itelman/go-concurrency/mpscpool"
 	"github.com/itelman/go-concurrency/mutexpool"
 )
 
@@ -77,6 +77,17 @@ func BenchmarkSyncPool(b *testing.B) {
 }
 
 // =============================================================================
+// MPSC Pool Benchmarks
+// =============================================================================
+
+func BenchmarkMPSCPool(b *testing.B) {
+	p := &mpscpool.Pool{
+		New: func() any { return new(BenchObj) },
+	}
+	runBenchmarks(b, p)
+}
+
+// =============================================================================
 // Mutex-Based Custom Pool Benchmarks
 // =============================================================================
 
@@ -84,16 +95,5 @@ func BenchmarkMutexPool(b *testing.B) {
 	p := &mutexpool.Pool{
 		New: func() any { return new(BenchObj) },
 	}
-	runBenchmarks(b, p)
-}
-
-// =============================================================================
-// Channel-Based Pool Benchmarks
-// =============================================================================
-
-func BenchmarkChannelPool(b *testing.B) {
-	// Capacity 120 = max total items (SHeavy: 120 producers × 1 item each).
-	// Prevents channel-block stalls on the heaviest sub-benchmark.
-	p := chanpool.NewPool(120, func() any { return new(BenchObj) })
 	runBenchmarks(b, p)
 }
