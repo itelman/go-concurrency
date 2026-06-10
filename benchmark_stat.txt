@@ -4,25 +4,25 @@ pkg: github.com/itelman/go-concurrency
 cpu: AMD Ryzen 5 6600HS Creator Edition
                                   │ results.txt  │
                                   │    sec/op    │
-SyncPool/VLight_2_Producers-12      22.90µ ± 16%
-SyncPool/Light_4_Producers-12       24.15µ ±  1%
-SyncPool/Medium_12_Producers-12     26.00µ ± 56%
-SyncPool/Heavy_30_Producers-12      29.40µ ±  5%
-SyncPool/VHeavy_60_Producers-12     34.34µ ±  1%
-SyncPool/SHeavy_120_Producers-12    45.61µ ±  2%
-MPSCPool/VLight_2_Producers-12      19.40µ ±  5%
-MPSCPool/Light_4_Producers-12       19.44µ ±  1%
-MPSCPool/Medium_12_Producers-12     20.55µ ±  1%
-MPSCPool/Heavy_30_Producers-12      22.47µ ±  1%
-MPSCPool/VHeavy_60_Producers-12     26.26µ ±  2%
-MPSCPool/SHeavy_120_Producers-12    35.23µ ±  6%
-MutexPool/VLight_2_Producers-12     21.32µ ±  1%
-MutexPool/Light_4_Producers-12      21.51µ ±  4%
-MutexPool/Medium_12_Producers-12    23.09µ ±  5%
-MutexPool/Heavy_30_Producers-12     26.14µ ±  1%
-MutexPool/VHeavy_60_Producers-12    30.80µ ±  1%
-MutexPool/SHeavy_120_Producers-12   38.89µ ±  1%
-geomean                             26.26µ
+SyncPool/VLight_2_Producers-12      22.92µ ±  6%
+SyncPool/Light_4_Producers-12       23.90µ ±  1%
+SyncPool/Medium_12_Producers-12     25.65µ ±  5%
+SyncPool/Heavy_30_Producers-12      28.45µ ±  1%
+SyncPool/VHeavy_60_Producers-12     33.59µ ±  1%
+SyncPool/SHeavy_120_Producers-12    43.84µ ± 16%
+MPSCPool/VLight_2_Producers-12      19.95µ ±  1%
+MPSCPool/Light_4_Producers-12       19.62µ ±  0%
+MPSCPool/Medium_12_Producers-12     20.33µ ±  2%
+MPSCPool/Heavy_30_Producers-12      22.21µ ±  2%
+MPSCPool/VHeavy_60_Producers-12     25.91µ ±  1%
+MPSCPool/SHeavy_120_Producers-12    34.95µ ±  1%
+MutexPool/VLight_2_Producers-12     22.02µ ±  1%
+MutexPool/Light_4_Producers-12      22.03µ ±  4%
+MutexPool/Medium_12_Producers-12    23.22µ ± 21%
+MutexPool/Heavy_30_Producers-12     25.82µ ±  1%
+MutexPool/VHeavy_60_Producers-12    30.41µ ±  1%
+MutexPool/SHeavy_120_Producers-12   38.31µ ±  0%
+geomean                             26.12µ
 
                                   │ results.txt  │
                                   │     B/op     │

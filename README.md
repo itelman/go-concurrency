@@ -1,7 +1,7 @@
 # Custom `sync.Pool` Implementation
 
 A highly optimized, thread-safe object pool implementation tailored specifically for asymmetric concurrency patterns.
-This project presents two implementation alternatives to `sync.Pool` under specific thread-allocation constraints.
+This project presents implementation alternatives to `sync.Pool` under specific thread-allocation constraints.
 
 ## Overview
 
@@ -79,6 +79,7 @@ To confirm correct pool behavior and guarantee no race conditions under high con
 run the tests in each implementation directory with:
 
 ```bash
+go test -v -race ./mpscpool/
 go test -v -race ./mutexpool/
 go test -v -race ./chanpool/
 ```
@@ -89,7 +90,8 @@ To compare the throughput, execution speed, and allocation metrics of our implem
 run the common benchmark file from the project root directory:
 
 ```bash
-go test -bench=. -benchmem
+go test -bench=. -benchmem # runs the benchmark
+go test -bench=. -benchmem -count=10 > results.txt # runs the benchmark 10 times and saves the results to a file
 ```
 
 ---
