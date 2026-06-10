@@ -4,25 +4,25 @@ pkg: github.com/itelman/go-concurrency
 cpu: AMD Ryzen 5 6600HS Creator Edition
                                   │ results.txt  │
                                   │    sec/op    │
-SyncPool/VLight_2_Producers-12      22.92µ ±  6%
-SyncPool/Light_4_Producers-12       23.90µ ±  1%
-SyncPool/Medium_12_Producers-12     25.65µ ±  5%
-SyncPool/Heavy_30_Producers-12      28.45µ ±  1%
-SyncPool/VHeavy_60_Producers-12     33.59µ ±  1%
-SyncPool/SHeavy_120_Producers-12    43.84µ ± 16%
-MPSCPool/VLight_2_Producers-12      19.95µ ±  1%
-MPSCPool/Light_4_Producers-12       19.62µ ±  0%
-MPSCPool/Medium_12_Producers-12     20.33µ ±  2%
-MPSCPool/Heavy_30_Producers-12      22.21µ ±  2%
-MPSCPool/VHeavy_60_Producers-12     25.91µ ±  1%
-MPSCPool/SHeavy_120_Producers-12    34.95µ ±  1%
-MutexPool/VLight_2_Producers-12     22.02µ ±  1%
-MutexPool/Light_4_Producers-12      22.03µ ±  4%
-MutexPool/Medium_12_Producers-12    23.22µ ± 21%
-MutexPool/Heavy_30_Producers-12     25.82µ ±  1%
-MutexPool/VHeavy_60_Producers-12    30.41µ ±  1%
-MutexPool/SHeavy_120_Producers-12   38.31µ ±  0%
-geomean                             26.12µ
+SyncPool/VLight_2_Producers-12      23.26µ ±  9%
+SyncPool/Light_4_Producers-12       24.29µ ±  6%
+SyncPool/Medium_12_Producers-12     25.71µ ±  3%
+SyncPool/Heavy_30_Producers-12      29.20µ ±  5%
+SyncPool/VHeavy_60_Producers-12     34.63µ ± 11%
+SyncPool/SHeavy_120_Producers-12    46.32µ ±  5%
+MutexPool/VLight_2_Producers-12     24.45µ ± 15%
+MutexPool/Light_4_Producers-12      26.62µ ± 12%
+MutexPool/Medium_12_Producers-12    33.97µ ± 22%
+MutexPool/Heavy_30_Producers-12     34.14µ ± 20%
+MutexPool/VHeavy_60_Producers-12    39.40µ ±  6%
+MutexPool/SHeavy_120_Producers-12   51.50µ ±  6%
+MPSCPool/VLight_2_Producers-12      21.24µ ± 13%
+MPSCPool/Light_4_Producers-12       20.21µ ±  2%
+MPSCPool/Medium_12_Producers-12     22.06µ ±  8%
+MPSCPool/Heavy_30_Producers-12      22.60µ ± 12%
+MPSCPool/VHeavy_60_Producers-12     27.43µ ± 11%
+MPSCPool/SHeavy_120_Producers-12    38.93µ ±  9%
+geomean                             29.20µ
 
                                   │ results.txt  │
                                   │     B/op     │
@@ -32,19 +32,19 @@ SyncPool/Medium_12_Producers-12     120.6Ki ± 0%
 SyncPool/Heavy_30_Producers-12      121.5Ki ± 0%
 SyncPool/VHeavy_60_Producers-12     122.9Ki ± 0%
 SyncPool/SHeavy_120_Producers-12    125.7Ki ± 0%
+MutexPool/VLight_2_Producers-12     120.4Ki ± 0%
+MutexPool/Light_4_Producers-12      120.6Ki ± 0%
+MutexPool/Medium_12_Producers-12    121.0Ki ± 0%
+MutexPool/Heavy_30_Producers-12     121.9Ki ± 0%
+MutexPool/VHeavy_60_Producers-12    123.4Ki ± 0%
+MutexPool/SHeavy_120_Producers-12   126.3Ki ± 0%
 MPSCPool/VLight_2_Producers-12      120.2Ki ± 0%
 MPSCPool/Light_4_Producers-12       120.2Ki ± 0%
 MPSCPool/Medium_12_Producers-12     120.6Ki ± 0%
 MPSCPool/Heavy_30_Producers-12      121.5Ki ± 0%
 MPSCPool/VHeavy_60_Producers-12     122.9Ki ± 0%
 MPSCPool/SHeavy_120_Producers-12    125.7Ki ± 0%
-MutexPool/VLight_2_Producers-12     120.2Ki ± 0%
-MutexPool/Light_4_Producers-12      120.3Ki ± 0%
-MutexPool/Medium_12_Producers-12    120.7Ki ± 0%
-MutexPool/Heavy_30_Producers-12     121.5Ki ± 0%
-MutexPool/VHeavy_60_Producers-12    122.9Ki ± 0%
-MutexPool/SHeavy_120_Producers-12   125.8Ki ± 0%
-geomean                             121.8Ki
+geomean                             122.0Ki
 
                                   │ results.txt │
                                   │  allocs/op  │
@@ -54,16 +54,16 @@ SyncPool/Medium_12_Producers-12      134.0 ± 0%
 SyncPool/Heavy_30_Producers-12       152.0 ± 0%
 SyncPool/VHeavy_60_Producers-12      182.0 ± 0%
 SyncPool/SHeavy_120_Producers-12     242.0 ± 0%
-MPSCPool/VLight_2_Producers-12       124.0 ± 0%
-MPSCPool/Light_4_Producers-12        126.0 ± 0%
-MPSCPool/Medium_12_Producers-12      134.0 ± 0%
-MPSCPool/Heavy_30_Producers-12       152.0 ± 0%
-MPSCPool/VHeavy_60_Producers-12      182.0 ± 0%
-MPSCPool/SHeavy_120_Producers-12     242.0 ± 0%
 MutexPool/VLight_2_Producers-12      124.0 ± 0%
 MutexPool/Light_4_Producers-12       126.0 ± 0%
 MutexPool/Medium_12_Producers-12     134.0 ± 0%
 MutexPool/Heavy_30_Producers-12      152.0 ± 0%
 MutexPool/VHeavy_60_Producers-12     182.0 ± 0%
 MutexPool/SHeavy_120_Producers-12    242.0 ± 0%
+MPSCPool/VLight_2_Producers-12       124.0 ± 0%
+MPSCPool/Light_4_Producers-12        126.0 ± 0%
+MPSCPool/Medium_12_Producers-12      134.0 ± 0%
+MPSCPool/Heavy_30_Producers-12       152.0 ± 0%
+MPSCPool/VHeavy_60_Producers-12      182.0 ± 0%
+MPSCPool/SHeavy_120_Producers-12     242.0 ± 0%
 geomean                              155.3

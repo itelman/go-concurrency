@@ -77,22 +77,22 @@ func BenchmarkSyncPool(b *testing.B) {
 }
 
 // =============================================================================
-// MPSC Pool Benchmarks
+// Mutex-Based Custom Pool Benchmarks
 // =============================================================================
 
-func BenchmarkMPSCPool(b *testing.B) {
-	p := &mpscpool.Pool{
+func BenchmarkMutexPool(b *testing.B) {
+	p := &mutexpool.Pool{
 		New: func() any { return new(BenchObj) },
 	}
 	runBenchmarks(b, p)
 }
 
 // =============================================================================
-// Mutex-Based Custom Pool Benchmarks
+// MPSC Pool Benchmarks
 // =============================================================================
 
-func BenchmarkMutexPool(b *testing.B) {
-	p := &mutexpool.Pool{
+func BenchmarkMPSCPool(b *testing.B) {
+	p := &mpscpool.Pool{
 		New: func() any { return new(BenchObj) },
 	}
 	runBenchmarks(b, p)
